@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LarpTrack</title>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script src="https://unpkg.com/fengari-web@0.1.4/dist/fengari-web.js" type="text/javascript"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><radialGradient id='bgGrad' cx='50%' cy='50%' r='70%'><stop offset='0%' stop-color='%23161616'/><stop offset='100%' stop-color='%23050505'/></radialGradient><linearGradient id='goldGrad' x1='0%' y1='100%' x2='100%' y2='0%'><stop offset='0%' stop-color='%23f5c97a'/><stop offset='100%' stop-color='%23ff8a5c'/></linearGradient></defs><rect width='512' height='512' rx='112' fill='url(%23bgGrad)'/><g stroke='url(%23goldGrad)' stroke-width='32' stroke-linecap='round' fill='none'><path d='M 140,140 L 372,372'/><path d='M 90,190 L 322,422' opacity='0.4' stroke-width='20'/><path d='M 190,90 L 422,322' opacity='0.4' stroke-width='20'/><path d='M 372,140 L 290,222'/><path d='M 222,290 L 140,372'/></g></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="gfx-medium">
+
+<div id="lua-3d-container" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:1; pointer-events:none;"></div>
+<div id="app-bg"></div>
+<canvas id="particle-canvas"></canvas>
+
+<div id="sidebar-overlay" data-action="close-sidebar"></div>
+
+<div id="app-shell">
+
+  <nav id="sidebar" class="sidebar">
+    <div class="sidebar-profile-row">
+      <button class="sidebar-profile-btn" id="sidebar-auth-item" type="button">
+        <span class="sidebar-avatar" id="sidebar-avatar"></span>
+        <span class="auth-item-label" id="sidebar-auth-label">Guest</span>
+      </button>
+      <button id="sidebar-close-btn" class="icon-btn mobile-only" type="button" aria-label="Close menu"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="sidebar-divider"></div>
+
+    <button class="nav-item" id="sidebar-login-item" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+      <span id="sidebar-login-label">Log In</span>
+    </button>
+
+    <input type="file" id="lazy-sync" multiple accept="audio/*" style="display:none;">
+
+    <button class="sidebar-sync-btn" id="sidebar-sync-btn" type="button">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+      Sync Music
+    </button>
+
+    <button class="nav-item settings-link" data-view="settings" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <main id="main-content">
+    <div class="header-stack" id="header-stack">
+      <header class="topbar" id="main-topbar">
+        <div class="topbar-brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 512 512" width="22" height="22">
+              <defs>
+                <linearGradient id="topbarBrandGrad" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0" stop-color="#f5c97a"/><stop offset="1" stop-color="#ff8a5c"/>
+                </linearGradient>
+              </defs>
+              <g stroke="url(#topbarBrandGrad)" stroke-width="32" stroke-linecap="round" fill="none">
+                <path d="M 140,140 L 372,372"/>
+                <path d="M 90,190 L 322,422" opacity="0.4" stroke-width="20"/>
+                <path d="M 190,90 L 422,322" opacity="0.4" stroke-width="20"/>
+                <path d="M 372,140 L 290,222"/>
+                <path d="M 222,290 L 140,372"/>
+              </g>
+            </svg>
+          </span>
+          <span class="brand-name">LarpTrack</span>
+          <button id="memory-badge" class="memory-badge" type="button" style="display:none;">
+            <span class="memory-dot"></span><span id="memory-badge-label"></span>
+          </button>
+        </div>
+
+        <div class="header-actions">
+          <button id="new-playlist-btn" class="header-pill-btn" type="button" style="display:none;">+ New Playlist</button>
+          <div class="more-menu-anchor">
+            <button class="icon-btn" id="search-toggle-btn" title="Search" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg>
+            </button>
+            <div class="search-drawer" id="search-drawer">
+              <label class="search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg>
+                <input type="text" id="track-search" placeholder="Search title, artist, album…" autocomplete="off">
+              </label>
+              <button class="icon-btn" id="search-drawer-close" title="Close search" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+          </div>
+          <button id="nav-toggle" class="icon-btn mobile-only" type="button" aria-label="Open menu">
+            <svg class="nav-toggle-menu-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+            <svg class="nav-toggle-back-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="quick-nav-scroll" id="quick-nav-scroll">
+        <button class="nav-item quick-pill active" data-view="library" type="button">Library</button>
+        <button class="nav-item quick-pill" data-view="favorites" type="button">Favorites</button>
+        <button class="nav-item quick-pill" data-view="playlists" type="button">Playlists</button>
+        <button class="nav-item quick-pill" data-view="artists" type="button">Artists</button>
+        <button class="nav-item quick-pill" data-view="albums" type="button">Albums</button>
+      </div>
+
+      <div class="list-toolbar" id="list-toolbar">
+        <div class="sort-box drawer-select" id="sort-drawer" data-drawer>
+          <button type="button" class="drawer-trigger" id="sort-trigger" aria-haspopup="listbox" aria-expanded="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h12M3 12h8M3 17h4M17 5v14m0 0l-3.5-3.5M17 19l3.5-3.5"/></svg>
+            <span id="sort-trigger-label">Newest Added</span>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="drawer-panel" id="sort-panel" role="listbox">
+            <button type="button" class="drawer-option selected" data-value="newest" role="option">Newest Added</button>
+            <button type="button" class="drawer-option" data-value="plays" role="option">Most Played</button>
+            <button type="button" class="drawer-option" data-value="alpha" role="option">Alphabetical (A–Z)</button>
+            <button type="button" class="drawer-option" data-value="duration" role="option">Longest Duration</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="view active" id="view-tracklist" data-view-panel="tracklist">
+      <button class="back-link" id="tracklist-back" type="button" style="display:none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>Back</button>
+      <div class="tracklist-heading" id="tracklist-heading" style="display:none;">
+        <h2 id="tracklist-heading-title">Playlist</h2>
+        <button class="header-pill-btn danger" id="tracklist-delete-btn" type="button" style="display:none;">Delete Playlist</button>
+      </div>
+      <div class="track-count" id="track-count">— tracks</div>
+      <div id="song-list-container" class="list-view"></div>
+      <div class="empty-state" id="empty-state-tracklist" style="display:none;">
+        <div class="empty-state-inner">
+          <div class="empty-icon"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 10l12-3"/><circle cx="6" cy="19" r="3" fill="currentColor"/><circle cx="18" cy="16" r="3" fill="currentColor"/></svg></div>
+          <div class="empty-label" id="empty-label-tracklist">No tracks yet</div>
+          <div class="empty-sub" id="empty-sub-tracklist">Tap "Sync Music" to add songs<br>from your device</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-playlists" data-view-panel="playlists">
+      <div id="playlists-grid" class="card-grid"></div>
+      <div class="empty-state" id="empty-state-playlists" style="display:none;">
+        <div class="empty-state-inner">
+          <div class="empty-icon"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h13M4 12h13M4 18h7"/><circle cx="19" cy="17" r="2.5"/><path stroke-linecap="round" d="M21.5 17V8.5"/></svg></div>
+          <div class="empty-label">No playlists yet</div>
+          <div class="empty-sub">Create one to start organizing your library</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-artists" data-view-panel="artists">
+      <div id="artists-grid" class="card-grid"></div>
+      <div class="empty-state" id="empty-state-artists" style="display:none;">
+        <div class="empty-state-inner">
+          <div class="empty-icon"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 003-3V6a3 3 0 10-6 0v6a3 3 0 003 3z"/><path stroke-linecap="round" d="M6 11a6 6 0 0012 0M12 17.5V21m-3.5 0h7"/></svg></div>
+          <div class="empty-label">No artists yet</div>
+          <div class="empty-sub">Sync some music to see artists here</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-albums" data-view-panel="albums">
+      <div id="albums-grid" class="card-grid"></div>
+      <div class="empty-state" id="empty-state-albums" style="display:none;">
+        <div class="empty-state-inner">
+          <div class="empty-icon"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="0.75" fill="currentColor" stroke="none"/></svg></div>
+          <div class="empty-label">No albums yet</div>
+          <div class="empty-sub">Sync some music to see albums here</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-settings" data-view-panel="settings">
+      <div class="settings-page">
+
+        <div class="settings-block">
+          <h3>Themes</h3>
+          <div class="theme-grid">
+            <button data-theme="dynamic" type="button">Dynamic Art</button>
+            <button data-theme="midnight" type="button">Midnight Blue</button>
+            <button data-theme="sunset" type="button">Sunset Pink</button>
+            <button data-theme="matrix" type="button">Matrix Green</button>
+          </div>
+        </div>
+
+        <div class="settings-block">
+          <h3>View Layout</h3>
+          <div class="setting-row">
+            <span>Display Style</span>
+            <div class="drawer-select" id="layout-style-drawer" data-drawer>
+              <button type="button" class="drawer-trigger" id="layout-style-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <span id="layout-style-trigger-label">List View</span>
+                <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="drawer-panel" id="layout-style-panel" role="listbox">
+                <button type="button" class="drawer-option selected" data-value="list-view" role="option">List View</button>
+                <button type="button" class="drawer-option" data-value="grid-view" role="option">Card View</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-block">
+          <h3>Preferences</h3>
+          <div class="setting-row">
+            <span>Particles</span>
+            <input type="checkbox" id="particle-toggle" checked>
+          </div>
+          <div class="setting-row">
+            <span>Graphics Quality</span>
+            <div class="drawer-select" id="graphics-quality-drawer" data-drawer>
+              <button type="button" class="drawer-trigger" id="graphics-quality-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <span id="graphics-quality-trigger-label">Medium</span>
+                <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="drawer-panel" id="graphics-quality-panel" role="listbox">
+                <button type="button" class="drawer-option" data-value="low" role="option">Low</button>
+                <button type="button" class="drawer-option selected" data-value="medium" role="option">Medium</button>
+                <button type="button" class="drawer-option" data-value="high" role="option">High</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-block">
+          <h3>Addons (Lua)</h3>
+          <p class="settings-note">Paste code below to apply. LarpTrack exposes a beginner-friendly <code>LTAddons</code> table on <code>window</code> — see the commented example for the full boilerplate.</p>
+          <textarea id="lua-input" placeholder="-- Try:
+window:LTAddons_setAccent('#ff8a5c')"></textarea>
+          <div class="settings-row-buttons">
+            <button class="extra-btn" id="run-lua-btn" type="button">Apply Addon</button>
+            <button class="extra-btn" id="reset-lua-btn" type="button">Reset</button>
+          </div>
+        </div>
+
+        <script type="text/x-lua-example">
+-- LarpTrack Addon Example — safe to copy into the "Addons (Lua)"
+-- box in Settings. Every call below goes through the beginner
+-- helpers LarpTrack registers on `window.LTAddons`, so you never
+-- need to know how the rest of the app is built.
+local js = require "js"
+local window = js.global
+
+-- 1) Change an accent/interface color.
+--    Accepts any CSS color string ('#hex', 'rgb(...)', a named
+--    color, etc). This instantly re-tints buttons, the play
+--    button glow, active nav item, and so on.
+window:LTAddons_setAccent("#7C9D8E")
+
+-- 2) Change base font size app-wide (in pixels).
+--    Good for accessibility presets or a "compact" addon.
+window:LTAddons_setFontSize(17)
+
+-- 3) Toggle the visibility of any UI region by CSS selector.
+--    Second argument: true = show, false = hide.
+window:LTAddons_toggleVisibility("#eq-btn", false)
+
+-- 4) Register your own click handler on any existing button,
+--    without ever editing main.js. Your callback fires in
+--    addition to (not instead of) the button's normal behavior.
+window:LTAddons_onButtonClick("#shuffle-btn", function()
+    window:LTAddons_toast("Addon says: shuffling!")
+end)
+        </script>
+
+        <div class="settings-block about-section">
+          <h3>About</h3>
+          <p>LarpTrack</p>
+          <p>local music architecture — lyrics, playlists, favorites, analytics &amp; equalizer.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="mini-player" id="mini-player">
+  <div class="mini-left" id="mini-left">
+    <div class="mini-art-wrap"><img id="mini-art" src="" alt="cover"></div>
+    <div class="mini-text">
+      <div class="mini-title-row">
+        <div id="mini-title">Nothing Playing</div>
+        <div class="equalizer" id="mini-equalizer"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div id="mini-artist">—</div>
+    </div>
+  </div>
+  <div class="mini-controls">
+    <button class="icon-btn fav-btn" id="mini-fav" title="Favorite" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>
+    </button>
+    <button id="mini-prev" class="icon-btn" title="Previous" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 6a1 1 0 012 0v5.2l8.4-6.1A1 1 0 0119 6v12a1 1 0 01-1.6.8L9 12.7V18a1 1 0 01-2 0V6z"/></svg></button>
+    <button id="mini-play" class="icon-btn play" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 001.5.86l11-6.86a1 1 0 000-1.72l-11-6.86A1 1 0 008 5.14z"/></svg></button>
+    <button id="mini-next" class="icon-btn" title="Next" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 6a1 1 0 00-2 0v5.2L6.6 5.1A1 1 0 005 6v12a1 1 0 001.6.8L15 12.7V18a1 1 0 002 0V6z"/></svg></button>
+  </div>
+</div>
+
+<div id="player-screen">
+  <div class="player-topbar">
+    <div class="player-topbar-left">
+      <button class="icon-btn back-btn" id="player-back-btn" title="Minimize" type="button">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+      </button>
+    </div>
+    <span class="player-topbar-label">Now Playing</span>
+    <div class="player-topbar-right">
+      <div class="more-menu-anchor">
+        <button class="row-icon-btn more-toggle" id="player-more-btn" title="More options" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg>
+        </button>
+        <div class="row-menu" id="player-more-menu">
+          <button type="button" id="eq-btn">
+            <svg class="row-menu-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path stroke-linecap="round" d="M1 14h6M9 8h6M17 16h6"/></svg>
+            <span class="row-menu-label">Equalizer</span>
+          </button>
+          <button type="button" id="edit-track-btn">
+            <svg class="row-menu-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.86 4.49l1.69-1.69a1.875 1.875 0 112.65 2.65L10.58 16.07a4.5 4.5 0 01-1.9 1.13L6 18l.8-2.69a4.5 4.5 0 011.13-1.9l8.93-8.92z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5V18a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 18V7.5A2.25 2.25 0 016.75 5.25h4.5"/></svg>
+            <span class="row-menu-label">Edit Info</span>
+          </button>
+          <button type="button" id="add-to-playlist-btn">
+            <svg class="row-menu-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+            <span class="row-menu-label">Add to Playlist</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="player-inner">
+    <div class="art-halo" id="art-halo">
+      <img id="full-art" class="full-art" src="" alt="Album art">
+    </div>
+
+    <div class="title-row">
+      <div class="title-block">
+        <h2 id="full-title">Title</h2>
+        <p id="full-artist">Artist</p>
+      </div>
+      <button class="fav-icon-btn" id="fav-btn" title="Favorite" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg></button>
+    </div>
+
+    <div class="progress-area">
+      <div class="waveform-wrap">
+        <canvas id="waveform-canvas"></canvas>
+        <input type="range" id="progress-bar" class="waveform-range" value="0" min="0" step="0.1">
+      </div>
+      <div class="time-labels">
+        <span id="current-time">0:00</span>
+        <span id="duration">0:00</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="skip-btn" id="skip-prev" title="Previous" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 6a1 1 0 012 0v5.2l8.4-6.1A1 1 0 0119 6v12a1 1 0 01-1.6.8L9 12.7V18a1 1 0 01-2 0V6z"/></svg></button>
+      <button class="play-btn" id="master-play" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 001.5.86l11-6.86a1 1 0 000-1.72l-11-6.86A1 1 0 008 5.14z"/></svg></button>
+      <button class="skip-btn" id="skip-next" title="Next" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 6a1 1 0 00-2 0v5.2L6.6 5.1A1 1 0 005 6v12a1 1 0 001.6.8L15 12.7V18a1 1 0 002 0V6z"/></svg></button>
+    </div>
+
+    <div class="bottom-tab-row">
+      <button class="mini-toggle-btn" id="shuffle-btn" title="Shuffle" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h4l7 12h5"/><path d="M14 6h5"/><path d="M2 18h4l3.3-5.7"/><path d="M17 3l3 3-3 3"/><path d="M17 15l3 3-3 3"/></svg></button>
+      <button class="lyrics-tab-btn" id="lyrics-btn" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3v10.55A4 4 0 108 17V7h8V3H9z"/></svg>Lyrics</button>
+      <button class="mini-toggle-btn" id="repeat-btn" title="Repeat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></button>
+    </div>
+  </div>
+
+  <div id="lyrics-panel" class="player-subpanel">
+    <div class="subpanel-header">
+      <h3>Lyrics</h3>
+      <div class="subpanel-actions">
+        <button class="extra-btn" id="edit-lyrics-btn" type="button">Edit</button>
+        <button class="icon-btn" id="lyrics-close-btn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+    </div>
+    <div id="lyrics-scroll" class="lyrics-scroll"></div>
+  </div>
+
+  <div id="eq-panel" class="player-subpanel">
+    <div class="subpanel-header">
+      <h3>Equalizer</h3>
+      <div class="subpanel-actions">
+        <button class="extra-btn" id="eq-reset-btn" type="button">Reset</button>
+        <button class="icon-btn" id="eq-close-btn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+    </div>
+
+    <div class="eq-panel-body eq-v2">
+      <div class="eq-master-row">
+        <span>Equalizer</span>
+        <label class="switch"><input type="checkbox" id="eq-master-toggle" checked><span class="switch-track"><span class="switch-thumb"></span></span></label>
+      </div>
+
+      <div class="eq-curve-block" id="eq-curve-block">
+        <svg id="eq-curve-svg" class="eq-curve-svg" viewBox="0 0 340 160" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="eq-curve-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent-warm)" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="var(--accent-warm)" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line class="eq-curve-baseline" x1="20" y1="85" x2="320" y2="85"/>
+          <path class="eq-curve-fill" id="eq-curve-fill" d=""></path>
+          <path class="eq-curve-line" id="eq-curve-line" d=""></path>
+          <g id="eq-curve-points"></g>
+        </svg>
+        <div class="eq-freq-labels" id="eq-freq-labels"></div>
+      </div>
+
+      <div class="setting-row">
+        <span>Presets</span>
+        <div class="drawer-select" id="eq-preset-drawer">
+          <button class="drawer-trigger" type="button"><span id="eq-preset-label">Flat</span><svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg></button>
+          <div class="drawer-panel">
+            <button class="drawer-option" data-value="flat" type="button">Flat</button>
+            <button class="drawer-option" data-value="bassBoost" type="button">Bass Boost</button>
+            <button class="drawer-option" data-value="trebleBoost" type="button">Treble Boost</button>
+            <button class="drawer-option" data-value="vocal" type="button">Vocal</button>
+            <button class="drawer-option" data-value="rock" type="button">Rock</button>
+            <button class="drawer-option" data-value="pop" type="button">Pop</button>
+            <button class="drawer-option" data-value="classical" type="button">Classical</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="eq-dials-row">
+        <div class="eq-dial" data-dial="bassBoost">
+          <div class="eq-dial-gauge">
+            <svg class="eq-dial-svg" viewBox="0 0 100 100">
+              <path class="eq-dial-track" d="M21.72,78.28 A40,40 0 1 1 78.28,78.28"></path>
+              <path class="eq-dial-fill" id="eq-dial-fill-bassBoost" d="M21.72,78.28 A40,40 0 1 1 78.28,78.28"></path>
+            </svg>
+            <div class="eq-dial-value" id="eq-dial-value-bassBoost">70%</div>
+          </div>
+          <label class="switch eq-dial-switch"><input type="checkbox" id="eq-toggle-bassBoost"><span class="switch-track"><span class="switch-thumb"></span></span></label>
+          <div class="eq-dial-label">Bass Boost</div>
+        </div>
+        <div class="eq-dial" data-dial="loudness">
+          <div class="eq-dial-gauge">
+            <svg class="eq-dial-svg" viewBox="0 0 100 100">
+              <path class="eq-dial-track" d="M21.72,78.28 A40,40 0 1 1 78.28,78.28"></path>
+              <path class="eq-dial-fill" id="eq-dial-fill-loudness" d="M21.72,78.28 A40,40 0 1 1 78.28,78.28"></path>
+            </svg>
+            <div class="eq-dial-value" id="eq-dial-value-loudness">70%</div>
+          </div>
+          <label class="switch eq-dial-switch"><input type="checkbox" id="eq-toggle-loudness"><span class="switch-track"><span class="switch-thumb"></span></span></label>
+          <div class="eq-dial-label">Loudness</div>
+        </div>
+        <div class="eq-dial" data-dial="virtualizer">
+          <div class="eq-dial-gauge">
+            <svg class="eq-dial-svg" viewBox="0 0 100 100">
+              <path class="eq-dial-track" d="M21.72,78.28 A40,40 0 1 1 78.28,78.28"></path>
+              <path class="eq-dial-fill" id="eq-dial-fill-virtualizer" d="M21.72,78.28 A40,40 0 1 1 78.28,78.28"></path>
+            </svg>
+            <div class="eq-dial-value" id="eq-dial-value-virtualizer">60%</div>
+          </div>
+          <label class="switch eq-dial-switch"><input type="checkbox" id="eq-toggle-virtualizer"><span class="switch-track"><span class="switch-thumb"></span></span></label>
+          <div class="eq-dial-label">Virtualizer</div>
+        </div>
+      </div>
+
+      <div class="eq-block">
+        <div class="eq-block-header"><span>Audio Balance</span><label class="switch"><input type="checkbox" id="eq-balance-toggle"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+        <div class="eq-balance-row">
+          <span class="eq-balance-side">L</span>
+          <input type="range" id="eq-balance-slider" min="-100" max="100" step="1" value="0">
+          <span class="eq-balance-side">R</span>
+        </div>
+        <div class="eq-balance-values"><span id="eq-balance-l-val">100%</span><span id="eq-balance-r-val">100%</span></div>
+      </div>
+
+      <div class="eq-block">
+        <div class="eq-block-header"><span>Volume</span><span id="eq-volume-val">100%</span></div>
+        <input type="range" id="eq-volume-slider" min="0" max="100" step="1" value="100">
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio-track"></audio>
+</div>
+
+<div class="modal-backdrop" id="track-info-modal">
+  <div class="modal-card">
+    <div class="modal-header"><h3>Track Details</h3></div>
+    <div class="track-info-body">
+      <img id="info-cover" src="" alt="cover">
+      <div class="track-info-rows">
+        <div class="info-row wrap"><span>Title</span><strong id="info-title">—</strong></div>
+        <div class="info-row wrap"><span>Artist</span><strong id="info-artist">—</strong></div>
+        <div class="info-row"><span>Album</span><strong id="info-album">—</strong></div>
+        <div class="info-row"><span>Duration</span><strong id="info-duration">—</strong></div>
+        <div class="info-row"><span>Play Count</span><strong id="info-playcount">0</strong></div>
+        <div class="info-row"><span>Open Count</span><strong id="info-opencount">0</strong></div>
+        <div class="info-row"><span>Lyrics</span><strong id="info-lyrics">Not added</strong></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="extra-btn ghost" data-close-modal="track-info-modal" type="button">Close</button>
+      <div class="modal-actions-right">
+        <button class="extra-btn" id="info-edit-btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.86 4.49l1.69-1.69a1.875 1.875 0 112.65 2.65L10.58 16.07a4.5 4.5 0 01-1.9 1.13L6 18l.8-2.69a4.5 4.5 0 011.13-1.9l8.93-8.92z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5V18a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 18V7.5A2.25 2.25 0 016.75 5.25h4.5"/></svg>Edit</button>
+        <button class="extra-btn primary" id="info-playlist-btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>Add to Playlist</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="lrc-editor-modal">
+  <div class="modal-card">
+    <div class="modal-header"><h3>Edit Lyrics (.lrc)</h3><button class="icon-btn" data-close-modal="lrc-editor-modal" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <p class="modal-hint">Write one line per lyric. Use <code>[mm:ss.xx]</code> tags, or place your cursor on a line and tap "Tag Timestamp" while the song plays.</p>
+    <textarea id="lrc-textarea" spellcheck="false" placeholder="[00:00.00] First line of the song..."></textarea>
+    <div class="modal-actions">
+      <button class="extra-btn" id="tag-timestamp-btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5V12l3.2 1.9"/></svg>Tag Timestamp</button>
+      <div class="modal-actions-right">
+        <button class="extra-btn ghost" data-close-modal="lrc-editor-modal" type="button">Cancel</button>
+        <button class="extra-btn primary" id="save-lrc-btn" type="button">Save Lyrics</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="track-edit-modal">
+  <div class="modal-card">
+    <div class="modal-header"><h3>Edit Song Info</h3></div>
+    <div class="edit-form">
+      <div class="edit-cover-row">
+        <img id="edit-cover-preview" src="" alt="cover preview">
+        <div class="edit-cover-actions">
+          <label class="extra-btn file-label">Upload Image<input type="file" id="edit-cover-file" accept="image/*" style="display:none;"></label>
+          <input type="text" id="edit-cover-url" placeholder="or paste an image URL">
+        </div>
+      </div>
+      <label class="field-label">Song Title<input type="text" id="edit-title" placeholder="Song title"></label>
+      <label class="field-label">Artist<input type="text" id="edit-artist" placeholder="Artist name"></label>
+      <label class="field-label">Album<input type="text" id="edit-album" placeholder="Album name"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="extra-btn ghost" data-close-modal="track-edit-modal" type="button">Cancel</button>
+      <button class="extra-btn primary" id="save-track-btn" type="button">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="playlist-picker-modal">
+  <div class="modal-card">
+    <div class="modal-header"><h3>Add to Playlist</h3><button class="icon-btn" data-close-modal="playlist-picker-modal" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="new-playlist-inline">
+      <input type="text" id="quick-playlist-name" placeholder="New playlist name">
+      <button class="extra-btn primary" id="quick-playlist-create-btn" type="button">Create</button>
+    </div>
+    <div id="playlist-picker-list" class="playlist-picker-list"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="new-playlist-modal">
+  <div class="modal-card">
+    <div class="modal-header"><h3>New Playlist</h3><button class="icon-btn" data-close-modal="new-playlist-modal" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <label class="field-label">Playlist Name<input type="text" id="new-playlist-name" placeholder="e.g. Late Night Drive"></label>
+    <div class="modal-actions">
+      <button class="extra-btn ghost" data-close-modal="new-playlist-modal" type="button">Cancel</button>
+      <button class="extra-btn primary" id="create-playlist-btn" type="button">Create Playlist</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="confirm-modal">
+  <div class="modal-card modal-card-sm">
+    <div class="modal-header"><h3 id="confirm-modal-title">Are you sure?</h3></div>
+    <p class="modal-hint" id="confirm-modal-message"></p>
+    <div class="modal-actions">
+      <button class="extra-btn ghost" id="confirm-modal-cancel" type="button">Cancel</button>
+      <button class="extra-btn danger" id="confirm-modal-ok" type="button">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="auth-modal">
+  <div class="modal-card modal-card-sm">
+    <div class="modal-header"><h3>Log in to LarpTrack</h3></div>
+    <p class="auth-required-note">Your playlists, favorites, and listening history are backed up to the cloud — logging in keeps them safe and synced.</p>
+    <input class="auth-field" type="email" id="auth-email" placeholder="Email" autocomplete="username">
+    <input class="auth-field" type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
+    <div class="auth-actions">
+      <button type="button" id="auth-login-btn">Log In</button>
+      <button type="button" class="primary" id="auth-signup-btn">Sign Up</button>
+    </div>
+    <div id="auth-error"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="memory-modal">
+  <div class="modal-card">
+    <div class="memory-glow"></div>
+    <div class="memory-month" id="memory-modal-month">September</div>
+    <div class="memory-headline">Your Memory</div>
+    <div class="memory-stat-big" id="memory-modal-hours">0h</div>
+    <div class="memory-stat-label" id="memory-modal-sub">listened last month</div>
+    <button class="memory-close-btn" type="button" data-close-modal="memory-modal">Nice!</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="profile-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Your Profile</h3>
+      <button class="icon-btn" type="button" data-close-modal="profile-modal" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+
+    <div class="profile-avatar-big" id="profile-avatar-big">G</div>
+
+    <div class="profile-name-row">
+      <input class="auth-field" type="text" id="profile-name-input" placeholder="Display name" maxlength="40">
+      <button type="button" id="profile-save-btn">Save</button>
+    </div>
+    <div class="profile-email" id="profile-email-text"></div>
+    <div class="profile-save-status" id="profile-save-status"></div>
+
+    <div class="profile-stats-grid">
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profile-stat-total">0h</div>
+        <div class="profile-stat-label">All-time listened</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profile-stat-month">0h</div>
+        <div class="profile-stat-label">This month</div>
+      </div>
+    </div>
+
+    <button type="button" class="profile-logout-btn" id="profile-logout-btn">Log Out</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="js/data.js"></script>
+<script type="module" src="cloud/app.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
